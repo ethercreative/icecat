@@ -19,6 +19,8 @@ class Reader
     protected $paths = [
         'all' => '/export/level4/EN/files.index.xml',
         'update' => '/export/level4/EN',
+        'categories' => '/export/freexml.int/refs/CategoriesList.xml.gz',
+        'suppliers' => '/export/freexml.int/refs/SuppliersList.xml.gz',
     ];
 
     public function __construct(array $config = [])
@@ -43,6 +45,7 @@ class Reader
     private function url(array $config = [])
     {
         $config = array_replace_recursive([
+            'protocol' => null,
             'scheme' => $this->serverScheme,
             'host' => $this->serverHost,
             'auth' => $this->auth(),
@@ -54,6 +57,7 @@ class Reader
             $config['path'] = '/' . $config['path'];
 
         $prefix = join('', array_filter([
+            $config['protocol'] ? $config['protocol'] . '://' : null,
             $config['scheme'],
             '://',
             $config['auth'] ? $config['auth'] . '@' : null,
@@ -71,7 +75,7 @@ class Reader
             'path' => $this->paths['all'],
         ]);
 
-        $this->readXML($url, $callback, $limit, $start);
+        $this->readProductXml($url, $callback, $limit, $start);
     }
 
     public function fetchUpdatedProducts($callback, $limit = 20, $start = 0)
@@ -80,7 +84,27 @@ class Reader
             'path' => $this->paths['update'],
         ]);
 
-        $this->readXML($url, $callback, $limit, $start);
+        $this->readProductXml($url, $callback, $limit, $start);
+    }
+
+    public function fetchCategories($callback, $limit = 20, $start = 0)
+    {
+        $url = $this->url([
+            'protocol' => 'compress.zlib',
+            'path' => $this->paths['categories'],
+        ]);
+
+        $this->readCategoryXml($url, $callback, $limit, $start);
+    }
+
+    public function fetchSuppliers($callback, $limit = 20, $start = 0)
+    {
+        $url = $this->url([
+            'protocol' => 'compress.zlib',
+            'path' => $this->paths['suppliers'],
+        ]);
+
+        $this->readSupplierXml($url, $callback, $limit, $start);
     }
 
     public function fetchProduct($id)
@@ -142,15 +166,15 @@ class Reader
         return $vals[0]['attributes'];
     }
 
-    private function readXML($url, $callback, $limit, $start)
+    private function readProductXml($url, $callback, $limit, $start)
     {
         $xml = new \XMLReader();
         $xml->open($url);
 
-        while ($xml->read() && $xml->name !== 'file');
-
         $count = 0;
         $skipped = 0;
+
+        while ($xml->read() && $xml->name !== 'file');
 
         while ($xml->name === 'file')
         {
@@ -172,6 +196,11 @@ class Reader
 
             $product = $this->fetchProduct($attributes['path']);
 
+            // die('<pre>'.print_r(['prod', $product, $attributes], 1).'</pre>');
+
+            $product['CATEGORY_ID'] = $attributes['Catid'];
+            $product['SUPPLIER_ID'] = $attributes['Supplier_id'];
+
             $response = $callback($product);
 
             if (!$response)
@@ -183,6 +212,83 @@ class Reader
 
             unset($file, $attributes);
             $xml->next('file');
+        }
+    }
+
+    private function readCategoryXml($url, $callback, $limit, $start)
+    {
+        $xml = simplexml_load_file($url);
+
+        $count = 0;
+        $skipped = 0;
+
+        foreach ($xml->Response->CategoriesList->Category as $object)
+        {
+            if ($count >= $limit)
+            {
+                break;
+            }
+
+            if ($skipped < $start)
+            {
+                ++$skipped;
+                continue;
+            }
+
+            // $attributes = (array) array_values((array) $object->attributes())[0];
+
+            if (!$object->Name[0] || empty($object->Name[0]->attributes()->Value))
+                continue;
+
+            $response = $callback([
+                'ID' => (int) $object->attributes()->ID,
+                'NAME' => (string) $object->Name[0]->attributes()->Value,
+            ]);
+
+            if (!$response)
+            {
+                break;
+            }
+
+            ++$count;
+
+            unset($object, $attributes);
+        }
+    }
+
+    private function readSupplierXml($url, $callback, $limit, $start)
+    {
+        $xml = simplexml_load_file($url);
+
+        $count = 0;
+        $skipped = 0;
+
+        foreach ($xml->Response->SuppliersList->Supplier as $object)
+        {
+            if ($count >= $limit)
+            {
+                break;
+            }
+
+            if ($skipped < $start)
+            {
+                ++$skipped;
+                continue;
+            }
+
+            $response = $callback([
+                'ID' => (int) $object->attributes()->ID,
+                'NAME' => (string) $object->attributes()->Name,
+            ]);
+
+            if (!$response)
+            {
+                break;
+            }
+
+            ++$count;
+
+            unset($object, $attributes);
         }
     }
 }
