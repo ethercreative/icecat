@@ -154,8 +154,15 @@ class Reader
             'path' => $id,
         ]);
 
-        $xml = new \XMLReader();
-        $xml->open($url);
+        try
+        {
+            $xml = new \XMLReader();
+            $xml->open($url);
+        }
+        catch(\Exception $e)
+        {
+            return null;
+        }
 
         while ($xml->read() && $xml->name !== 'Product');
 
@@ -195,6 +202,15 @@ class Reader
             $attributes = (array) array_values((array) $file->attributes())[0];
 
             $product = $this->fetchProduct($attributes['path']);
+
+            if (!$product)
+            {
+                ++$count;
+
+                unset($file, $attributes);
+                $xml->next('file');
+                continue;
+            }
 
             // die('<pre>'.print_r(['prod', $product, $attributes], 1).'</pre>');
 
