@@ -69,13 +69,13 @@ class Reader
         return $prefix;
     }
 
-    public function fetchProducts($callback, $limit = 20, $start = 0)
+    public function fetchProducts($callback, $limit = 20, $start = 0, $gatherMeta = true)
     {
         $url = $this->url([
             'path' => $this->paths['all'],
         ]);
 
-        $this->readProductXml($url, $callback, $limit, $start);
+        $this->readProductXml($url, $callback, $limit, $start, $gatherMeta);
     }
 
     public function fetchUpdatedProducts($callback, $limit = 20, $start = 0)
@@ -173,7 +173,7 @@ class Reader
         return $vals[0]['attributes'];
     }
 
-    private function readProductXml($url, $callback, $limit, $start)
+    private function readProductXml($url, $callback, $limit, $start, $gatherMeta = true)
     {
         $xml = new \XMLReader();
         $xml->open($url);
@@ -201,7 +201,22 @@ class Reader
 
             $attributes = (array) array_values((array) $file->attributes())[0];
 
-            $product = $this->fetchProduct($attributes['path']);
+            if ($gatherMeta)
+            {
+                $product = $this->fetchProduct($attributes['path']);
+                $product['CATEGORY_ID'] = $attributes['Catid'];
+                $product['SUPPLIER_ID'] = $attributes['Supplier_id'];
+            }
+            else
+            {
+                $product = [
+                    'ID' => $attributes['Product_ID'],
+                    'PROD_ID' => $attributes['Prod_ID'],
+                    'NAME' => $attributes['Model_Name'],
+                    'CATEGORY_ID' => $attributes['Catid'],
+                    'SUPPLIER_ID' => $attributes['Supplier_id'],
+                ];
+            }
 
             if (!$product)
             {
