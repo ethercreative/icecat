@@ -141,7 +141,7 @@ class Reader
             catch (\Exception $e)
             {
                 // die('<pre>'.print_r($e, 1).'</pre>');
-                die('<pre>'.print_r($e->getMessage(), 1).'</pre>');
+                die('<pre>'.print_r($e->getResponse()->getBody()->getContents(), 1).'</pre>');
             }
 
             echo $client->getBody()->getContents();
