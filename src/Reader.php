@@ -12,6 +12,7 @@ class Reader
 
     protected $username;
     protected $password;
+    protected $appkey;
 
     protected $serverHost = 'data.icecat.biz';
     protected $serverScheme = 'http';
@@ -27,6 +28,7 @@ class Reader
     {
         if (!empty($config['username'])) $this->username = $config['username'];
         if (!empty($config['password'])) $this->password = $config['password'];
+        if (!empty($config['appkey'])) $this->appkey = $config['appkey'];
     }
 
     private function client(MockHandler $handler = null)
@@ -122,6 +124,7 @@ class Reader
                     'lang' => $this->language,
                     'content' => '',
                     'icecat_id' => $id,
+                    'appkey' => $this->appkey,
                 ],
             ]);
 
@@ -141,7 +144,7 @@ class Reader
             catch (\Exception $e)
             {
                 // die('<pre>'.print_r($e, 1).'</pre>');
-                die('<pre>'.print_r($e->getResponse()->getBody()->getContents(), 1).'</pre>');
+                die('<pre>'.print_r($e->getMessage(), 1).'</pre>');
             }
 
             echo $client->getBody()->getContents();
@@ -152,6 +155,7 @@ class Reader
             'scheme' => 'https',
             'host' => 'data.icecat.biz',
             'path' => $id,
+            'appkey' => $this->appkey,
         ]);
 
         try
@@ -161,6 +165,7 @@ class Reader
         }
         catch(\Exception $e)
         {
+            // throw $e;
             return null;
         }
 
