@@ -315,6 +315,10 @@ class Reader
             $response = $callback([
                 'ID' => (int) $object->attributes()->ID,
                 'NAME' => (string) $object->attributes()->Name,
+                'LOGOPIC' => (string) $object->attributes()->LogoPic,
+                'LOGOLOWPIC' => (string) $object->attributes()->LogoLowPic,
+                'LOGOHIGHPIC' => (string) $object->attributes()->LogoHighPic,
+                'LOGOORIGINAL' => (string) $object->attributes()->LogoOriginal,
             ]);
 
             if (!$response)
