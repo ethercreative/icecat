@@ -331,4 +331,19 @@ class Reader
             unset($object, $attributes);
         }
     }
+
+    public function fetchUrl($url)
+    {
+        return $this->client()->request(
+            'GET',
+            $url,
+            [
+                'verify' => true,
+                'auth' => [
+                    $this->username,
+                    $this->password,
+                ],
+            ]
+        );
+    }
 }
